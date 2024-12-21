@@ -10,7 +10,7 @@ import ClassNode from './UMLComponents/ClassNode.jsx';
 import InterfaceNode from './UMLComponents/InterfaceNode.jsx';
 import EnumNode from './UMLComponents/EnumNode.jsx';
 import AbstractClassNode from './UMLComponents/AbstractClassNode.jsx';
-import { abstractClassNode, classNode, enumNode, initialNodes, interfaceNode } from './nodes.js';
+import { abstractClassNode, classNode, enumNode, interfaceNode } from './nodes.js';
 
 import HorizontalToolbar from "./UIComponents/HorizontalToolbar.jsx";
 import VerticalToolbar from "./UIComponents/VerticalToolbar.jsx";
@@ -42,9 +42,6 @@ import {
   ReactFlow,
   Controls,
   Background,
-  useNodesState,
-  useEdgesState,
-  MarkerType,
   addEdge,
   SmoothStepEdge
 } from '@xyflow/react';
@@ -167,7 +164,7 @@ function UMLDiagram() {
     console.log(iconName)
   }
 
-  function handleGenerateCodeClick(e) {
+  function handleGenerateCodeClick() {
     window.location.href = `${window.location.origin}/code-viewer`
   }
 
@@ -277,59 +274,40 @@ function UMLDiagram() {
 
 
   const handleClassColorChange = (color) => {
-    // setClassColor(color);
     setNodeColors((prevNodeColors) => {
       return {
         ...prevNodeColors,
         class: color
       }
     })
-    // updateNodeColor('1', color); // Optional: Change color if node exists
   };
 
   const handleAbstractClassColorChange = (color) => {
-    // setAbstractClassColor(color);
     setNodeColors((prevNodeColors) => {
       return {
         ...prevNodeColors,
         abstractClass: color
       }
     })
-    // updateNodeColor('2', color); // Optional: Change color if node exists
   };
 
   const handleEnumColorChange = (color) => {
-    // setEnumColor(color);
     setNodeColors((prevNodeColors) => {
       return {
         ...prevNodeColors,
         enum: color
       }
     })
-    // updateNodeColor('3', color); // Optional: Change color if node exists
   };
 
   const handleInterfaceColorChange = (color) => {
-    // setInterfaceColor(color);
     setNodeColors((prevNodeColors) => {
       return {
         ...prevNodeColors,
         interface: color
       }
     })
-    // updateNodeColor('4', color); // Optional: Change color if node exists
   };
-
-  // Function to update node color
-  
-  // const updateNodeColor = (nodeId, color) => {
-  //   setNodes((prevNodes) =>
-  //     prevNodes.map((node) => 
-  //       node.id === nodeId ? { ...node, color } : node
-  //     )
-  //   );
-  // };
-
 
   return (
       <motion.div
@@ -372,7 +350,7 @@ function UMLDiagram() {
         <div className="generate-code-button-component">
           <Button text="GENERATE CODE" onClick={handleGenerateCodeClick}/>
         </div>
-        
+
         <div className="vertical-toolbar-component">
           <VerticalToolbar items={verticalSidebarItems}/>
         </div>
@@ -380,7 +358,7 @@ function UMLDiagram() {
         <div className="horizontal-toolbar-component">
           <HorizontalToolbar items={horizontalSidebarItems}/>
         </div>
-        
+
         <ContextMenu
           contextMenuRef={contextMenuRef}
           items={menuItems}
@@ -388,7 +366,7 @@ function UMLDiagram() {
           positionY={contextMenuStatus.position.y}
           isToggled={contextMenuStatus.toggled}
         />
-        
+
         <div className='color-mapper-component'>
           <ColorMapper
             onChangeFunctions={[
@@ -400,7 +378,7 @@ function UMLDiagram() {
             nodeTypes={['Class', 'Abstract Class', 'Interface',  'Enum']}
           />
         </div>
-        
+
         <div className="sidebar-component">
           <Sidebar />
         </div>
