@@ -26,6 +26,7 @@ import AbstractClassIcon from './assets/HorizontalToolbarIcons/AbstractClass.png
 import InterfaceIcon from './assets/HorizontalToolbarIcons/Interface.png'
 import EnumIcon from './assets/HorizontalToolbarIcons/Enum.png'
 
+
 import UndoIcon from './assets/VerticalToolbarIcons/Undo.png'
 import RedoIcon from './assets/VerticalToolbarIcons/Redo.png'
 import ExportIcon from './assets/VerticalToolbarIcons/Export.png'
@@ -36,6 +37,9 @@ import ImplementationIcon from "./assets/DropdownMenuIcons/Implementation.png";
 import DependencyIcon from "./assets/DropdownMenuIcons/Dependency.png";
 import CompositionIcon from "./assets/DropdownMenuIcons/Composition.png";
 import { useAppContext } from './AppContext.jsx';
+import TextframeNode from './UMLComponents/TextFrameNode.jsx';
+import NoteNode from './UMLComponents/NoteNode.jsx';
+
 import '@xyflow/react/dist/style.css';
 
 import {
@@ -47,6 +51,8 @@ import {
 } from '@xyflow/react';
 
 const nodeTypes = {
+  textframe: TextframeNode,
+  note: NoteNode,
   class: ClassNode,
   interface: InterfaceNode,
   enum: EnumNode,
@@ -74,6 +80,7 @@ function UMLDiagram() {
     selectedEdge, setSelectedEdge
   } = useAppContext();
 
+  const [components, setComponents] = useState([]);
   const contextMenuRef = useRef(null);
   const [contextMenuStatus, setContextMenuStatus] = useState({
     position: {
@@ -82,6 +89,8 @@ function UMLDiagram() {
     },
     toggled: false,
   });
+
+
 
   function handleOnContextMenu(e) {
 
@@ -135,7 +144,16 @@ function UMLDiagram() {
       toggled: false
     });
   }
-
+  function handleRemarks(iconName){
+    const id = `${iconName}-${nodes.length}`;
+    const newNode = {
+      id,
+      type: iconName.toLowerCase(),
+      position: { x: Math.random() * 250, y: Math.random() * 250 },
+      data: { label: `${iconName} Node` },
+    };
+    setNodes((nds) => [...nds, newNode]);
+  }
   function handleIconClick(iconName) {
     switch (iconName) {
       case 'Association':
@@ -196,8 +214,8 @@ function UMLDiagram() {
   ]
 
   const horizontalSidebarItems = [
-    { type: "icon", src: TextIcon, alt: 'Text', onClick: () => handleIconClick('Text') },
-    { type: "icon", src: NoteIcon, alt: 'Note', onClick: () => handleIconClick('Note') },
+    { type: "icon", src: TextIcon, alt: 'Text', onClick: () => handleRemarks('textframe') },
+    { type: "icon", src: NoteIcon, alt: 'Note', onClick: () => handleRemarks('note') },
     { type: "icon", src: ClassIcon, alt: 'Class', onClick: () => createClass() },
     { type: "icon", src: AbstractClassIcon, alt: 'Abstract Class', onClick: () => createAbstractClass() },
     { type: "icon", src: InterfaceIcon, alt: 'Interface', onClick: () => createInterface() },
@@ -321,6 +339,7 @@ function UMLDiagram() {
         animate={{opacity: 1}}
         exit={{opacity: 0}}
       >
+
         <ReactFlow
           nodes={nodes}
           nodeTypes={nodeTypes}
@@ -387,6 +406,8 @@ function UMLDiagram() {
           <p className='codeless-uml'>CodelessUML</p>
           <p className='project-name'>Project Name</p>
         </div>
+
+        
       </motion.div>
 
   );
