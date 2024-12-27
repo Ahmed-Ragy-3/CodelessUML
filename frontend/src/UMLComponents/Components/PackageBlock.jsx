@@ -5,7 +5,7 @@ function PackageBlock( { packageName } ) {
   
   return (
     <div className="packageBlock">
-      <Input input={packageName}/>
+      {packageName}
     </div>
   )
 }

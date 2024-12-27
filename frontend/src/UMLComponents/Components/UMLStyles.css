@@ -5,7 +5,7 @@
 
 .attribute-button {
   position: absolute;
-  bottom: 5px;
+  bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -25,7 +25,7 @@
 .attribute-buttons,
 .method-buttons{
   position: absolute;
-  bottom: -10px;
+  bottom: -7px;
   transform: translateX(-50%);
 }
 
@@ -51,6 +51,7 @@
   border: solid black;
   border-radius: 20px;
   cursor: pointer;
+  border-width: 2px;
 }
 
 .attributesBlock,
@@ -65,11 +66,13 @@
   border-radius: 0px 0px 20px 20px;
   padding-right: 30px;
   padding-top: 10px;
+  border-width: 2px;
 }
 
 .methodsBlock {
   padding-top: 10px;
   padding-bottom: 10px;
+  min-height: 35px;
 }
 
 .delete {
@@ -98,15 +101,20 @@
 
 .packageBlock {
   height: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: auto;
   max-width: 40%;
   background-color: rgb(197, 207, 214);
   text-align: center;
+  align-content: center;
   padding: 3px;
   margin-bottom: -3px;
   color: black;
   font-size: 20px;
   border: solid black;
+  border-width: 2px;
   border-radius: 20px 0px 0px 0px;
 }
 
@@ -123,5 +131,66 @@
   border: solid black;
   border-bottom: none;
   border-radius: 0px 20px 0px 0px;
+  border-width: 2px;
   /* margin-bottom: 2px; */
 }
+
+
+.attribute-scope {
+  background-color: 'transparent';
+  border: none;
+  font-family: Roboto mono, monospace;
+  font-size: 20px;
+  appearance: none;
+  justify-content: center;
+}
+.attribute-scope option {
+  justify-content: center;
+}
+
+.attribute-scope:focus {
+  outline: none;
+}
+
+.attribute-scope-container {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 10px;
+  background-color: #fefefe;
+  padding: 10px;
+  border: 1px solid #888;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  background-color: #F1F1F1;
+  border-radius: 10px;
+  font-family: Roboto mono, monospace;
+  z-index: 3;
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  width: 140px;
+}
+
+.close {
+  align-self: flex-end;
+  font-size: 20px;
+  cursor: pointer;
+  margin-bottom: -20px;
+  z-index: 4;
+}
+
+
+
+.dropdown-selected{
+  padding-top: 2px;
+  font-size: 20px;
+  font-family: Roboto mono, monospace;
+  cursor: pointer;
+}
+

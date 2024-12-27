@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useEffect, useContext, useCallback, useState } from 'react';
 import { abstractClassNode, classNode, enumNode, initialNodes, interfaceNode } from './nodes.js';
 import { dependency, inheritance, association, composition, implementation } from './edges.jsx';
 
@@ -9,15 +9,25 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
-  SmoothStepEdge
+  SmoothStepEdge,
+  getIncomers,
+  getOutgoers,
+  getConnectedEdges,
 } from '@xyflow/react';
 const AppContext = createContext();
+
+
+
 
 // Create a provider component
 export const AppProvider = ({ children }) => {
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNodes, setSelectedNodes] = useState([]);
+  const [selectedEdges, setSelectedEdges] = useState([]);
+  const [undo_stack, setUndoStack] = useState([]);
+  const [redo_stack, setRedoStack] = useState([]);
 
   const [nodeColors, setNodeColors] = useState({
     class:'#0fd2e8',
@@ -26,15 +36,181 @@ export const AppProvider = ({ children }) => {
     enum: '#e9ff23'
   });
 
-  const [selectedEdge, setSelectedEdge] = useState(dependency)
+  const [selectedEdgeType, setSelectedEdgeType] = useState(dependency)
+  
+  const [copied, setCopied] = useState([])
+
+  const updateNodeData = (id, key, value) => {
+    setNodes(prevNodes =>
+      prevNodes.map(node =>
+        node.id === id ? { ...node, data: { ...node.data, [key]: value } } : node
+      )
+    );
+  };
+
+  const Take_Action = (Nodes, Edges, nodeColors) => {
+    const action = {Nodes, Edges, nodeColors};
+    setUndoStack((prev) => [...prev, action]); // Push to undo stack
+  };
+
+  function deleteNode(id) {
+    Take_Action(nodes, edges, nodeColors);
+    setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
+    deleteEdges(id)
+  }
+  
+  function deleteEdge(source, target) {
+    Take_Action(nodes, edges, nodeColors);
+    setEdges((prevEdges) =>
+      prevEdges.filter((edge) => source !== edge.source || target !== edge.target)
+    );
+  }
+
+  function deleteEdges(ids) {
+    setEdges((prevEdges) =>
+      prevEdges.filter((edge) => ids !== edge.source && ids !== edge.target)
+    );
+  }
+  
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.ctrlKey) {
+        if (event.key.toLowerCase() === 'c') {
+          console.log(edges)
+          setCopied(selectedNodes);
+        } else if (event.key.toLowerCase() === 'v') {
+          // setNodes((prevNodes) => [...prevNodes, ...copied]);
+          // setNodes((prevNodes) => [...prevNodes,{ ...interfaceNode, id: `${nodes.length}` }]);
+          for (const newNode in copied) {
+            setNodes((prevNodes) => [...prevNodes, {...newNode, id: `${nodes.length}`}]);
+          }
+        }
+      }
+    };
+  
+    window.addEventListener('keydown', handleKeyDown);
+  
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedNodes, setNodes]);
+
+
+
+  // useEffect(() => {
+  //   const handleKeyDown = (event) => {
+  //     if (event.key === 'Delete' && selectedNodes.length > 0) {
+  //       setNodes((currentNodes) =>
+  //         currentNodes.map((node) => {
+  //           if (!selectedNodes.includes(node.id)) {
+  //             // Ensure `relations` and `implements` exist
+  //             if (node.data?.relations) {
+  //               // Remove `extendsId` if it matches a selected node
+  //               if (selectedNodes.includes(node.data.relations.extendsId)) {
+  //                 node.data.relations.extendsId = null;
+  //               }
+
+  //               // Filter `implements` array if it exists
+  //               if (Array.isArray(node.data.relations.implements)) {
+  //                 node.data.relations.implements = node.data.relations.implements.filter(
+  //                   (value) => !selectedNodes.includes(value)
+  //                 );
+  //               }
+  //             }
+
+  //             return node; // Return updated node
+  //           }
+  //           return null; // Mark node for removal if in selectedNodes
+  //         }).filter((node) => node !== null) // Remove null nodes
+  //       );
+  //     }
+  //   };
+  
+  //   window.addEventListener('keydown', handleKeyDown);
+  
+  //   return () => {
+  //     window.removeEventListener('keydown', handleKeyDown);
+  //   };
+  // }, [selectedNodes, setNodes]);
+
+
+  // const onNodesDelete = useCallback((deleted) => {
+  //   setEdges(
+  //     deleted.reduce((acc, node) => {
+  //       // const incomers = getIncomers(node, nodes, edges);
+  //       // const outgoers = getOutgoers(node, nodes, edges);
+  //       const connectedEdges = getConnectedEdges([node], edges);
+
+  //       const remainingEdges = acc.filter(
+  //         (edge) => !connectedEdges.includes(edge),
+  //       );
+
+  //       // const createdEdges = incomers.flatMap(({ id: source }) =>
+  //       //   outgoers.map(({ id: target }) => ({
+  //       //     id: `${source}->${target}`,
+  //       //     source,
+  //       //     target,
+  //       //   })),
+  //       // );
+
+  //       // return [...remainingEdges, ...createdEdges];
+  //       return [...remainingEdges];
+  //     }, edges),
+  //   );
+  // }, [nodes, edges],);
+
+  // const onEdgesDelete = useCallback((deleted) => {
+  //   setEdges(
+  //     deleted.reduce((acc, node) => {
+  //       // const incomers = getIncomers(node, nodes, edges);
+  //       // const outgoers = getOutgoers(node, nodes, edges);
+  //       const connectedEdges = getConnectedEdges([node], edges);
+
+  //       const remainingEdges = acc.filter(
+  //         (edge) => !connectedEdges.includes(edge),
+  //       );
+
+  //       // const createdEdges = incomers.flatMap(({ id: source }) =>
+  //       //   outgoers.map(({ id: target }) => ({
+  //       //     id: `${source}->${target}`,
+  //       //     source,
+  //       //     target,
+  //       //   })),
+  //       // );
+
+  //       // return [...remainingEdges, ...createdEdges];
+  //       return [...remainingEdges];
+  //     }, edges),
+  //   );
+  // }, [nodes, edges],);
+
+  const handleNodesChange = useCallback((changes) => {
+    onNodesChange(changes);
+    const selected = changes
+      .filter((change) => change.selected) // Filter selected nodes
+      .map((node) => node.id); // Map to IDs
+    
+    setSelectedNodes(selected);
+  }, [onNodesChange]);
+
 
   return (
     <AppContext.Provider
       value={{
-        nodeColors, setNodeColors,
         nodes, setNodes, onNodesChange,
         edges, setEdges, onEdgesChange,
-        selectedEdge, setSelectedEdge
+        nodeColors, setNodeColors,
+        selectedEdgeType, setSelectedEdgeType,
+        updateNodeData, 
+        // onNodesDelete, 
+        // onEdgesDelete,
+        selectedNodes, setSelectedNodes,
+        selectedEdges, setSelectedEdges,
+        undo_stack, setUndoStack,
+        redo_stack, setRedoStack,
+        Take_Action, deleteNode,
+        deleteEdges, deleteEdge,
       }}
     >
       {children}

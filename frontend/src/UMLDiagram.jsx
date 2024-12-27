@@ -1,6 +1,6 @@
 import './index.css';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 import { dependency, inheritance, association, composition, implementation } from './edges.jsx';
@@ -10,7 +10,9 @@ import ClassNode from './UMLComponents/ClassNode.jsx';
 import InterfaceNode from './UMLComponents/InterfaceNode.jsx';
 import EnumNode from './UMLComponents/EnumNode.jsx';
 import AbstractClassNode from './UMLComponents/AbstractClassNode.jsx';
-import { abstractClassNode, classNode, enumNode, interfaceNode } from './nodes.js';
+import TextFrame from './UMLComponents/Components/TextFrame.jsx';
+import Note from './UMLComponents/Components/Note.jsx';
+import { abstractClassNode, classNode, enumNode, initialNodes, interfaceNode } from './nodes.js';
 
 import HorizontalToolbar from "./UIComponents/HorizontalToolbar.jsx";
 import VerticalToolbar from "./UIComponents/VerticalToolbar.jsx";
@@ -26,7 +28,6 @@ import AbstractClassIcon from './assets/HorizontalToolbarIcons/AbstractClass.png
 import InterfaceIcon from './assets/HorizontalToolbarIcons/Interface.png'
 import EnumIcon from './assets/HorizontalToolbarIcons/Enum.png'
 
-
 import UndoIcon from './assets/VerticalToolbarIcons/Undo.png'
 import RedoIcon from './assets/VerticalToolbarIcons/Redo.png'
 import ExportIcon from './assets/VerticalToolbarIcons/Export.png'
@@ -37,22 +38,28 @@ import ImplementationIcon from "./assets/DropdownMenuIcons/Implementation.png";
 import DependencyIcon from "./assets/DropdownMenuIcons/Dependency.png";
 import CompositionIcon from "./assets/DropdownMenuIcons/Composition.png";
 import { useAppContext } from './AppContext.jsx';
-import TextframeNode from './UMLComponents/TextFrameNode.jsx';
-import NoteNode from './UMLComponents/NoteNode.jsx';
-
 import '@xyflow/react/dist/style.css';
+import AttributesBlock from './UMLComponents/Components/AttributeBlock.jsx';
 
 import {
   ReactFlow,
   Controls,
   Background,
+  useNodesState,
+  useEdgesState,
+  MarkerType,
+  useOnSelectionChange,
+  // panOnDrag,
+  // panOnScroll,
+  // selectNodesOnDrag,
   addEdge,
-  SmoothStepEdge
+  SmoothStepEdge,
+  SelectionMode,
 } from '@xyflow/react';
 
 const nodeTypes = {
-  textframe: TextframeNode,
-  note: NoteNode,
+  text: TextFrame,
+  note: Note,
   class: ClassNode,
   interface: InterfaceNode,
   enum: EnumNode,
@@ -76,11 +83,20 @@ const initialEdges = [
 function UMLDiagram() {
 
   const {
+    nodes, setNodes, onNodesChange,
+    edges, setEdges, onEdgesChange,
     nodeColors, setNodeColors,
-    selectedEdge, setSelectedEdge
+    selectedEdgeType, setSelectedEdgeType,
+    onNodesDelete, onEdgesDelete,
+    selectedEdges, setSelectedEdges,
+    selectedNodes, setSelectedNodes,
+    undo_stack, setUndoStack,
+    redo_stack, setRedoStack,
+    Take_Action, deleteEdges, deleteNode,
+    updateNodeData, deleteEdge,
   } = useAppContext();
 
-  const [components, setComponents] = useState([]);
+
   const contextMenuRef = useRef(null);
   const [contextMenuStatus, setContextMenuStatus] = useState({
     position: {
@@ -88,9 +104,29 @@ function UMLDiagram() {
       y: 0
     },
     toggled: false,
+    visible: false,
   });
 
+  const onChange = useCallback(({ nodes, edges }) => {
+    setSelectedNodes(nodes.map((node) => node.id));
+    setSelectedEdges(edges.map((edge) => edge.id));
+  }, []);
+  
 
+  const handleNodeDragStop = (event, node) => {
+    const currentNodesState = nodes.map(n => ({ ...n }));
+      Take_Action(currentNodesState, edges, nodeColors); // Pass the current state
+      console.log(`Node ${node.id} moved to`, node.position); // Log the node movement
+    setNodes((nds) => {
+      // Capture the current state before updating
+      const updatedNodes = nds.map((n) => 
+        (n.id === node.id ? { ...n, position: node.position } : n)
+      );
+  
+      console.log(`Node ${node.id} moved to`, node.position); // Log the node movement
+      return updatedNodes;
+    });
+  };
 
   function handleOnContextMenu(e) {
 
@@ -131,6 +167,8 @@ function UMLDiagram() {
   }
 
   function handleOnClick() {
+    console.log("selected Nodes")
+    console.log(selectedNodes)
     setContextMenuStatus({
       ...contextMenuStatus,
       toggled: false
@@ -144,8 +182,9 @@ function UMLDiagram() {
       toggled: false
     });
   }
-  function handleRemarks(iconName){
-    const id = `${iconName}-${nodes.length}`;
+
+  function handleRemarks(iconName) {
+    const id = `${nodes.length}`;
     const newNode = {
       id,
       type: iconName.toLowerCase(),
@@ -153,41 +192,45 @@ function UMLDiagram() {
       data: { label: `${iconName} Node` },
     };
     setNodes((nds) => [...nds, newNode]);
+    Take_Action(id, `Create ${iconName}`, newNode.data);
   }
+
   function handleIconClick(iconName) {
+    console.log(nodes)
     switch (iconName) {
       case 'Association':
-        setSelectedEdge(association)
+        setSelectedEdgeType(association)
         break;
       case 'Implementation':
-        setSelectedEdge(implementation)
-        console.log(selectedEdge)
+        setSelectedEdgeType(implementation)
+        console.log(selectedEdgeType)
         break;
       case 'Dependency':
-        setSelectedEdge(dependency)
+        setSelectedEdgeType(dependency)
         break;
       case 'Inheritance':
-        setSelectedEdge(inheritance)
-        console.log(selectedEdge)
+        setSelectedEdgeType(inheritance)
+        console.log(selectedEdgeType)
         break;
       case 'Composition':
-        setSelectedEdge(composition)
-        console.log(selectedEdge)
+        setSelectedEdgeType(composition)
+        console.log(selectedEdgeType)
         break;
         
       default:
-        setSelectedEdge(inheritance)
+        setSelectedEdgeType(inheritance)
         break;
     }
     console.log(iconName)
   }
 
-  function handleGenerateCodeClick() {
+  function handleGenerateCodeClick(e) {
     window.location.href = `${window.location.origin}/code-viewer`
   }
 
   const dropdownMenuItems = [
-    { text: "Association",
+    {
+      text: "Association",
       icon: {src: AssociationIcon, alt: 'Association'},
       onClick: () => handleIconClick('Association')
     },
@@ -213,8 +256,49 @@ function UMLDiagram() {
     }
   ]
 
+  function handleExportClick() {
+    const diagramState = { nodes, edges, nodeColors};
+    const blob = new Blob([JSON.stringify(diagramState)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagram.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  function handleImportClick(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      const diagramState = JSON.parse(loadEvent.target.result);
+      console.log(diagramState); // Check the structure of the imported data
+      setNodes(diagramState.nodes);
+      setEdges(diagramState.edges);
+      setNodeColors(diagramState.nodeColors);
+    };
+    reader.readAsText(file);
+  };
+
+  function handleUndoClick() {
+    const taken = undo_stack.pop();
+    setRedoStack((prev) => [...prev, {Nodes: nodes, Edges: edges, nodeColors: nodeColors}]);
+      console.log(taken);
+      setNodes(taken.Nodes);
+      setEdges(taken.Edges);
+      setNodeColors(taken.nodeColors);
+  }
+
+  function handleRedoClick(){
+    const taken = redo_stack.pop();
+    setUndoStack((prev) => [...prev, taken]);
+    setNodes(taken.Nodes);
+    setEdges(taken.Edges);
+    setNodeColors(taken.nodeColors); 
+  }
+
   const horizontalSidebarItems = [
-    { type: "icon", src: TextIcon, alt: 'Text', onClick: () => handleRemarks('textframe') },
+    { type: "icon", src: TextIcon, alt: 'Text', onClick: () => handleRemarks('text') },
     { type: "icon", src: NoteIcon, alt: 'Note', onClick: () => handleRemarks('note') },
     { type: "icon", src: ClassIcon, alt: 'Class', onClick: () => createClass() },
     { type: "icon", src: AbstractClassIcon, alt: 'Abstract Class', onClick: () => createAbstractClass() },
@@ -224,10 +308,10 @@ function UMLDiagram() {
   ]
 
   const verticalSidebarItems = [
-    { src: UndoIcon, alt: 'Undo', onClick: () => handleIconClick('Undo') },
-    { src: RedoIcon, alt: 'Redo', onClick: () => handleIconClick('Redo') },
-    { src: ExportIcon, alt: 'Export', onClick: () => handleIconClick('Export') },
-    { src: ImportIcon, alt: 'Import', onClick: () => handleIconClick('Import') },
+    { src: UndoIcon, alt: 'Undo', onClick: () => handleUndoClick() },
+    { src: RedoIcon, alt: 'Redo', onClick: () => handleRedoClick() },
+    { src: ExportIcon, alt: 'Export', onClick: () => handleExportClick()},
+    { src: ImportIcon, alt: 'Import', onClick: () => document.getElementById('import-file').click()},
   ]
 
   const menuItems = [
@@ -246,86 +330,93 @@ function UMLDiagram() {
     { label: 'Generate setters', onClick: () => handleMenuClick('Generate setters') },
   ];
 
-  const {
-    nodes, setNodes, onNodesChange,
-    edges, setEdges, onEdgesChange,
-  } = useAppContext();
+
 
   function createClass() {
     setNodes((prevNodes) => [...prevNodes,{ ...classNode, id: `${nodes.length}` }]);
+    Take_Action(nodes, edges, nodeColors);
   }
 
   function createInterface() {
     setNodes((prevNodes) => [...prevNodes,{ ...interfaceNode, id: `${nodes.length}` }]);
+    Take_Action(nodes, edges, nodeColors);
   }
 
   function createAbstractClass() {
     setNodes((prevNodes) => [...prevNodes,{ ...abstractClassNode, id: `${nodes.length}` }]);
+    Take_Action(nodes, edges, nodeColors);
   }
 
   function createEnum() {
     setNodes((prevNodes) => [...prevNodes,{ ...enumNode, id: `${nodes.length}` }]);
+    Take_Action(nodes, edges, nodeColors);
   }
   
 
   const onConnect = useCallback((params) => {
     setEdges((eds) =>
-      addEdge(
-        { ...selectedEdge, ...params },
-        eds
-      )
+      addEdge({ ...selectedEdgeType, ...params }, eds)
     );
-  }, [setEdges, selectedEdge, onEdgesChange]);
+    Take_Action(nodes, edges, nodeColors);
+  }, [nodes, nodeColors, edges, setEdges, selectedEdgeType, onEdgesChange]);
   
-  // const onConnect = useCallback((params) => {
-  //     setEdges((eds) =>
-  //       addEdge(
-  //         {
-  //           ...params,
-  //           type: selectedEdge.type || "smoothstep",
-  //         },
-  //         eds
-  //       )
-  //     );
-  //   }, [setEdges, selectedEdge, onEdgesChange]);
+  // const onConnect = useCallback((params) => setEdges((els) => addEdge(params, els)), [],);
   
-
-
   const handleClassColorChange = (color) => {
+    // setClassColor(color);
     setNodeColors((prevNodeColors) => {
       return {
         ...prevNodeColors,
         class: color
       }
     })
+    Take_Action(nodes, edges, nodeColors);
   };
 
   const handleAbstractClassColorChange = (color) => {
+    // setAbstractClassColor(color);
     setNodeColors((prevNodeColors) => {
       return {
         ...prevNodeColors,
         abstractClass: color
       }
     })
-  };
+    Take_Action(nodes, edges, nodeColors);
+    };
 
   const handleEnumColorChange = (color) => {
+    // setEnumColor(color);
     setNodeColors((prevNodeColors) => {
       return {
         ...prevNodeColors,
         enum: color
       }
     })
+    Take_Action(nodes, edges, nodeColors);
   };
 
   const handleInterfaceColorChange = (color) => {
+    // setInterfaceColor(color);
     setNodeColors((prevNodeColors) => {
       return {
         ...prevNodeColors,
         interface: color
       }
     })
+    Take_Action(nodes, edges, nodeColors);
+  
   };
+
+  // Function to update node color
+  
+  // const updateNodeColor = (nodeId, color) => {
+  //   setNodes((prevNodes) =>
+  //     prevNodes.map((node) => 
+  //       node.id === nodeId ? { ...node, color } : node
+  //     )
+  //   );
+  // };
+
 
   return (
       <motion.div
@@ -339,19 +430,31 @@ function UMLDiagram() {
         animate={{opacity: 1}}
         exit={{opacity: 0}}
       >
-
         <ReactFlow
           nodes={nodes}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           edges={edges}
           onNodesChange={onNodesChange}
+          onNodeDragStart={handleNodeDragStop}
           onEdgesChange={onEdgesChange}
+          // onNodesDelete={onNodesDelete}
+          // onEdgesDelete={onEdgesDelete}
+          onSelectionChange={onChange}
           onConnect={onConnect}
-          connectionLineStyle={selectedEdge.style}
-          connectionLineType={selectedEdge.type}
+          connectionLineStyle={selectedEdgeType.style}
+          connectionLineType={selectedEdgeType.type}
           snapToGrid={true}
           snapGrid={[16, 16]}
+          // panOnScroll
+          // fitView
+          selectionOnDrag
+          panOnDrag={[1, 2]}
+          // selectNodesOnDrag
+          // SelectionMode={SelectionMode.Full}
+          selectionMode={SelectionMode.Partial}
+          onNodesDelete={deleteNode}
+          onEdgesDelete={deleteEdge}
         >
           <Controls
             className='controls'
@@ -369,7 +472,7 @@ function UMLDiagram() {
         <div className="generate-code-button-component">
           <Button text="GENERATE CODE" onClick={handleGenerateCodeClick}/>
         </div>
-
+        
         <div className="vertical-toolbar-component">
           <VerticalToolbar items={verticalSidebarItems}/>
         </div>
@@ -377,7 +480,7 @@ function UMLDiagram() {
         <div className="horizontal-toolbar-component">
           <HorizontalToolbar items={horizontalSidebarItems}/>
         </div>
-
+        
         <ContextMenu
           contextMenuRef={contextMenuRef}
           items={menuItems}
@@ -385,7 +488,7 @@ function UMLDiagram() {
           positionY={contextMenuStatus.position.y}
           isToggled={contextMenuStatus.toggled}
         />
-
+        
         <div className='color-mapper-component'>
           <ColorMapper
             onChangeFunctions={[
@@ -397,7 +500,7 @@ function UMLDiagram() {
             nodeTypes={['Class', 'Abstract Class', 'Interface',  'Enum']}
           />
         </div>
-
+        
         <div className="sidebar-component">
           <Sidebar />
         </div>
@@ -407,7 +510,7 @@ function UMLDiagram() {
           <p className='project-name'>Project Name</p>
         </div>
 
-        
+        <input type="file" id="import-file" accept=".json" onChange={handleImportClick} style={{ display: 'none' }} />
       </motion.div>
 
   );

@@ -1,19 +1,15 @@
 import './UMLStyles.css'
 import Input from "./Input";
 
-import {
-  Handle,
-  Position,
-} from '@xyflow/react';
+function NameBlock({ name, color, id }) {
 
-function NameBlock({ name, color }) {
   const styles = {
     backgroundColor: `${color}`
   }
 
   return (
     <div className="nameBlock" style={styles}>
-      <Input input={name} />
+      <Input input={name} id={id} type="name"/>
     </div>
   )
 }

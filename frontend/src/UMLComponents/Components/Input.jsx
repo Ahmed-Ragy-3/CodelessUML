@@ -1,21 +1,28 @@
 import React, { useState } from 'react';
+import { useAppContext } from '../../AppContext';
 
-const Input = ({ input }) => {
-  const [name, setName] = useState(`${input}`);
+const Input = ({ input, setInput, id, type }) => {
 
-  const handleNameChange = (e) => {
-    setName(e.target.value);
-    console.log(name.length);
+  const {
+    updateNodeData
+  } = useAppContext();
+
+  const handleChange = (e) => {
+    console.log(input);
+    if(type == "method" || type == "attribute"){
+      setInput(e.target.value.replace(/\s+/g, ''));
+    }
+    updateNodeData(id, type, e.target.value.replace(/\s+/g, ''));
   };
 
   return (
     <div className="input">
       <input
         type="text"
-        value={name}
-        onChange={handleNameChange}
+        value={input}
+        onChange={handleChange}
         className="input"
-        style={{ width: `${name.length}ch` , fontFamily: "Roboto mono, monospace"}}
+        style={{ width: `${input.length}ch` , fontFamily: "Roboto mono, monospace"}}
       />
     </div>
   );
